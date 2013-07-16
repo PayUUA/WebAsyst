@@ -165,15 +165,33 @@
 
 			$data['ORDER_REF'] = $_SERVER['HTTP_HOST'].'_'.$_OrderID.'_'.md5( time() );
 
-			$payu  = new PayUCLS( $this->_getSettingValue('CONF_PAYU_MERCHANT'), $this->_getSettingValue('CONF_PAYU_SECRET_KEY') );
 
-			$payu->update( $data )->debug( $this->_getSettingValue('CONF_PAYU_DEBUG_MODE') );
+			$logo = "<div style='position:absolute; top:50%; left:50%; margin:-40px 0px 0px -60px; '>".
+					"<div><img src='/published/SC/html/img/logo-payu.png' width='120px' style='margin:0px 5px;'></div>".
+					"<div><img src='/published/SC/html/img/loader.gif' width='120px' style='margin:5px 5px;'></div>".
+					"</div>".
+					"<script>
+					setTimeout( subform, 5000 );
+					function subform(){ document.getElementById('PayUForm').submit(); }
+					</script>";
+
+
+			$option  = array( 	'merchant' => $this->_getSettingValue('CONF_PAYU_MERCHANT'), 
+				              	'secretkey' => $this->_getSettingValue('CONF_PAYU_SECRET_KEY'), 
+								'debug' => $this->_getSettingValue('CONF_PAYU_DEBUG_MODE'),
+								'button' => $logo );
+			
+			
+			if ( isset( $this->_getSettingValue('CONF_PAYU_LU_URL') ) ) $option['luUrl'] = $this->_getSettingValue('CONF_PAYU_LU_URL');
+
 
 			$result_url = $this->_getSettingValue('CONF_PAYU_BACK_REF');
-			if ($result_url !== "NO") $payu->data['BACK_REF'] = ($result_url !== "") ? $result_url : htmlentities($this->getTransactionResultURL('success'),ENT_QUOTES,'utf-8');
+			if ($result_url !== "NO") $data['BACK_REF'] = ($result_url !== "") ? $result_url : htmlentities($this->getTransactionResultURL('success'),ENT_QUOTES,'utf-8');
 
 			$form = $payu->getForm();
 
+			$pay = PayUCLS::getInst()->setOptions( $option )->setData( $data )->LU();
+			$form = $pay;
 
 			$statusID = "3";
 			
@@ -192,21 +210,29 @@
 				return parent::transactionResultHandler($transaction_result,$message,$source);
 			}
 
-			$payu  = new PayUCLS( $this->_getSettingValue('CONF_PAYU_MERCHANT'), $this->_getSettingValue('CONF_PAYU_SECRET_KEY') );
+			$option  = array( 	'merchant' => $this->_getSettingValue('CONF_PAYU_MERCHANT'), 
+				              	'secretkey' => $this->_getSettingValue('CONF_PAYU_SECRET_KEY'), 
+								'debug' => 0 );
 
-			$check = $payu->getPostData()->checkHashSignature();
-
-			if ( !$check )  die( "Incorrect signature" );
+			$payansewer = PayUCLS::getInst()->setOptions( $option )->IPN();
 			
-			$answer = $payu->createAnswer();
+
+			#$payu  = new PayUCLS( $this->_getSettingValue('CONF_PAYU_MERCHANT'), $this->_getSettingValue('CONF_PAYU_SECRET_KEY') );
+
+			#$check = $payu->getPostData()->checkHashSignature();
+
+			#if ( !$check )  die( "Incorrect signature" );
+			
+			#$answer = $payu->createAnswer();
 
 			$dat = explode("_",$_POST['REFNOEXT']);
 			$statusID = ( $_POST['ORDERSTATUS'] == "TEST" || $_POST['ORDERSTATUS'] == "COMPLETE" ) ? 5 : 6 ;
 			$orderID = $dat[1];
 
 			ostSetOrderStatusToOrder( $orderID, $statusID, "Результат оплаты через PayU", 0, true);
-	
-			echo $answer;
+			
+			echo $payansewer;
+			#echo $answer;
 	
         	$message = 'Результат обработки платежа PAYU';  
         	return parent::transactionResultHandler($transaction_result,$message);  
