@@ -100,7 +100,7 @@ class PayUCLS
 		$arr = &$this->dataArr;
 		$arr['MERCHANT'] = self::$merchant;
 		if( !isset($arr['ORDER_DATE']) ) $arr['ORDER_DATE'] = date("Y-m-d H:i:s");
-		$arr['TESTORDER'] = ( $this->debug == 1 ) ? "TRUE" : "FALSE";
+		$arr['TESTORDER'] = ( $this->debug == 1 ) ? "FALSE" : "FALSE";
 		$arr['DEBUG'] = $this->debug;
 		$arr['ORDER_HASH'] = $this->Signature( $this->checkArray( $arr ) );
 		$this->answer = $this->genereteForm( $arr );
